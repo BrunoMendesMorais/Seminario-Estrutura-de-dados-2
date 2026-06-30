@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#define ordem 5
+#define ordem 10
 
 /* run this program using the console pauser or add your own getch, system("pause") or input loop */
 
@@ -53,16 +53,15 @@ pg *split(pg *pai,int chave, pg *filho){
 		auxFilho[i+1] = pai->filhos[i];
 	}
 	
-	for(i=0;i<meio;i++){
+	for(i=0;i<=meio;i++){
 		pai->chaves[i] = auxChave[i];
 		pai->filhos[i] = auxFilho[i];
 	}
-	pai->filhos[i] = auxFilho[i];
 	
 	pg *nova = criarPag();
 	
 	int pos;
-	for(i++;i<ordem;i++){
+	for(i;i<ordem;i++){
 		pos = i - (meio+1);
 		nova->chaves[pos] = auxChave[i];
 		nova->filhos[pos] = auxFilho[i];
@@ -82,9 +81,10 @@ void inserirNaPag(pg *pai,int chave, pg *filho, int pos){
 	for(i= ordem -2; i>pos;i--)
 		pai->chaves[i] = pai->chaves[i-1];
 	pai->chaves[i] = chave;
-	for(i = ordem; i>pos ;i--)
-		pai->filhos[i] = pai->filhos[i-1];
-	pai->filhos[i] = filho;
+	for(i = pai->nchaves; i > pos + 1; i--)
+	    pai->filhos[i] = pai->filhos[i-1];
+	
+	pai->filhos[pos + 1] = filho;
 }
 
 pg *inserir(pg *pagina,int val){
@@ -115,10 +115,37 @@ pg *novaRaiz(int chave, pg *esq,pg *dir){
 	nova->chaves[0] = chave;
 	nova->filhos[0] = esq;
 	nova->filhos[1] = dir;
+	nova->nchaves = 1;
 	return nova;
 }
 
-int main(int argc, char *argv[]) {
-	return 0;
+void listarArvore(pg *pagina, int nivel){
+    if(pagina == NULL)
+        return;
+
+    int i;
+
+    printf("Nivel %d: ", nivel);
+
+    printf("[ ");
+    for(i = 0; i < pagina->nchaves; i++)
+        printf("%d ", pagina->chaves[i]);
+    printf("]\n");
+
+    for(i = 0; i <= pagina->nchaves; i++)
+        listarArvore(pagina->filhos[i], nivel + 1);
+}
+
+int main(){
+	int i;
+    pg *raiz = criarPag();
+    for(i=0;i<100;i++){
+    	pg *temp = inserir(raiz,i);
+    	raiz = temp != raiz?novaRaiz(raiz->chaves[(ordem-1)/2],raiz,temp): temp;
+	}
+
+    listarArvore(raiz,0);
+
+    return 0;
 }
 
