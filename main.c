@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #define ordem 10
 
 /* run this program using the console pauser or add your own getch, system("pause") or input loop */
@@ -9,7 +10,6 @@ typedef struct pagina{
 	int chaves[ordem-1];
 	struct pagina *filhos[ordem];
 }pg;
-
 
 int buscaVal(pg *pagina,int val){
 	if(pagina == NULL)
@@ -136,6 +136,65 @@ void listarArvore(pg *pagina, int nivel){
         listarArvore(pagina->filhos[i], nivel + 1);
 }
 
+pg *remocao(){
+}
+
+pg *redistribuir(pg *pai, int *chave, int pos){
+	pg *filho = NULL;
+	int i;
+	if(pos-1 >=0 && pai->filhos[pos-1]->nchaves > ceil(ordem/2)){
+		pai->filhos[pos-1]->nchaves --;
+		*chave = pai->filhos[pos-1]->chaves[pai->filhos[pos-1]->nchaves];
+		filho = pai->filhos[pos-1]->filhos[pai->filhos[pos-1]->nchaves];
+		pai->filhos[pos-1]->filhos[pai->filhos[pos-1]->nchaves] = NULL;
+		return filho;
+	}
+	if(pos+1 <= pai->nchaves && pai->filhos[pos+1]->nchaves > ceil(ordem/2)){
+		pai->filhos[pos+1]->nchaves --;
+		*chave = pai->filhos[pos+1]->chaves[0];
+		filho = pai->filhos[pos+1]->filhos[0];
+		for(i=0;i<pai->filhos[pos+1]->nchaves;i++){
+			pai->filhos[pos+1]->chaves[i] = pai->filhos[pos+1]->chaves[i+1];
+			pai->filhos[pos+1]->filhos[i] = pai->filhos[pos+1]->filhos[i+1];
+		}
+		pai->filhos[pos+1]->filhos[pai->filhos[pos+1]->nchaves] = pai->filhos[pai->filhos[pos+1]->nchaves+1];
+		pai->filhos[pos+1]->filhos[pai->filhos[pos+1]->nchaves+1] = NULL;
+	}
+	return filho;
+}
+
+void concatenacao(pg *pai, int pos){
+	int i;
+	
+	if(pos == pai->nchaves)
+		pos--;
+
+    pai->filhos[pos]->chaves[pai->filhos[pos]->nchaves] = pai->chaves[pos];
+
+
+    for(i=0;i<pai->filhos[pos+1]->nchaves;i++)
+        pai->filhos[pos]->chaves[pai->filhos[pos]->nchaves+1+i] = pai->filhos[pos+1]->chaves[i];
+
+    for(i=0;i<=pai->filhos[pos+1]->nchaves;i++)
+        pai->filhos[pos]->filhos[pai->filhos[pos]->nchaves+1+i] = pai->filhos[pos+1]->filhos[i];
+
+    pai->filhos[pos]->nchaves = pai->filhos[pos]->nchaves + pai->filhos[pos+1]->nchaves +1;
+
+    for(i=pos;i<pai->nchaves-1;i++)
+        pai->chaves[i] = pai->chaves[i+1];
+
+    for(i=pos+1;i<pai->nchaves;i++)
+        pai->filhos[i] = pai->filhos[i+1];
+
+    pai->filhos[pai->nchaves] = NULL;
+
+    pai->nchaves--;
+
+    free(pai->filhos[pos+1]);
+    pai->filhos[pos+1] = NULL;
+}
+
+
 int main(){
 	int i;
     pg *raiz = criarPag();
@@ -143,9 +202,8 @@ int main(){
     	pg *temp = inserir(raiz,i);
     	raiz = temp != raiz?novaRaiz(raiz->chaves[(ordem-1)/2],raiz,temp): temp;
 	}
-
+	
     listarArvore(raiz,0);
 
     return 0;
 }
-
