@@ -207,16 +207,10 @@ pg *remocao(pg **pai,int val){
 		remocao(pagina->filhos[i], val);
 		if(pagina->nchaves > ceil(ordem/2.0))
 			return NULL;
-
+		concatenacao(pai, i);
 	}
-		
-	
-
-
-
     return remocao(pagina->filhos[i], val);
 }
-
 
 int main(){
 	int i;
