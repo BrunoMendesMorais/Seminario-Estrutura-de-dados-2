@@ -11,14 +11,17 @@ typedef struct pagina{
 	struct pagina *filhos[ordem];
 }pg;
 
-int buscaVal(pg *pagina,int val){
-	if(pagina == NULL)
-		return 0;
-	int i;
-	for(i = 0; i < pagina->nchaves && pagina->chaves[i] < val; i++);
-	if(pagina->chaves[i] == val && i < pagina->nchaves)
-		return pagina->chaves[i];
-	return buscaVal(pagina->filhos[i],val);
+int buscaVal(pg *pagina, int val){
+    if(pagina == NULL)
+        return 0;
+
+    int i;
+    for(i = 0; i < pagina->nchaves && pagina->chaves[i] < val; i++);
+
+    if(i < pagina->nchaves && pagina->chaves[i] == val)
+        return pagina->chaves[i];
+
+    return buscaVal(pagina->filhos[i], val);
 }
 
 pg *criarPag(){
@@ -136,10 +139,7 @@ void listarArvore(pg *pagina, int nivel){
         listarArvore(pagina->filhos[i], nivel + 1);
 }
 
-pg *remocao(){
-}
-
-pg *redistribuir(pg *pai, int *chave, int pos){
+pg *redistribuir(pg *pai, int *chave, int pos, int *indice){
 	pg *filho = NULL;
 	int i;
 	if(pos-1 >=0 && pai->filhos[pos-1]->nchaves > ceil(ordem/2)){
@@ -147,6 +147,7 @@ pg *redistribuir(pg *pai, int *chave, int pos){
 		*chave = pai->filhos[pos-1]->chaves[pai->filhos[pos-1]->nchaves];
 		filho = pai->filhos[pos-1]->filhos[pai->filhos[pos-1]->nchaves];
 		pai->filhos[pos-1]->filhos[pai->filhos[pos-1]->nchaves] = NULL;
+		*indice = pos-1;
 		return filho;
 	}
 	if(pos+1 <= pai->nchaves && pai->filhos[pos+1]->nchaves > ceil(ordem/2)){
@@ -159,6 +160,7 @@ pg *redistribuir(pg *pai, int *chave, int pos){
 		}
 		pai->filhos[pos+1]->filhos[pai->filhos[pos+1]->nchaves] = pai->filhos[pai->filhos[pos+1]->nchaves+1];
 		pai->filhos[pos+1]->filhos[pai->filhos[pos+1]->nchaves+1] = NULL;
+		*indice = pos;
 	}
 	return filho;
 }
@@ -192,6 +194,20 @@ void concatenacao(pg *pai, int pos){
 
     free(pai->filhos[pos+1]);
     pai->filhos[pos+1] = NULL;
+}
+
+pg *remocao(pg **pai,int val;){
+	pg *pagina = *pai;
+    if(pagina == NULL)
+        return NULL;
+    
+    int i;
+    for(i = 0; i < pagina->nchaves && pagina->chaves[i] < val; i++);
+
+    if(i < pagina->nchaves && pagina->chaves[i] == val)
+        return pagina->chaves[i];
+
+    return buscaVal(pagina->filhos[i], val);
 }
 
 
