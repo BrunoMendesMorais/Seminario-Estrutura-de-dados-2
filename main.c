@@ -96,7 +96,7 @@ pg *inserir(pg *pagina,int val){
 	int p,i,x=ordem-1;
 	for(i = 0; i < pagina->nchaves && pagina->chaves[i] < val; i++);
 	if(pagina->chaves[i] == val && i < pagina->nchaves){
-		printf("Valor já inserido");
+		printf("Valor ja inserido");
 		return pagina;
 	}
 	pg *temp = inserir(pagina->filhos[i],val);
@@ -150,7 +150,7 @@ pg *redistribuir(pg *pai, int *chave, int pos, int *indice){
 		*indice = pos-1;
 		return filho;
 	}
-	if(pos+1 <= pai->nchaves && pai->filhos[pos+1]->nchaves > ceil(ordem/2)){
+	if(pos+1 <= pai->nchaves && pai->filhos[pos+1]->nchaves > ceil(ordem/2.0)){
 		pai->filhos[pos+1]->nchaves --;
 		*chave = pai->filhos[pos+1]->chaves[0];
 		filho = pai->filhos[pos+1]->filhos[0];
@@ -196,18 +196,25 @@ void concatenacao(pg *pai, int pos){
     pai->filhos[pos+1] = NULL;
 }
 
-pg *remocao(pg **pai,int val;){
+pg *remocao(pg **pai,int val){
 	pg *pagina = *pai;
     if(pagina == NULL)
-        return NULL;
-    
+        return;
     int i;
     for(i = 0; i < pagina->nchaves && pagina->chaves[i] < val; i++);
 
-    if(i < pagina->nchaves && pagina->chaves[i] == val)
-        return pagina->chaves[i];
+    if(i < pagina->nchaves && pagina->chaves[i] != val){
+		remocao(pagina->filhos[i], val);
+		if(pagina->nchaves > ceil(ordem/2.0))
+			return NULL;
 
-    return buscaVal(pagina->filhos[i], val);
+	}
+		
+	
+
+
+
+    return remocao(pagina->filhos[i], val);
 }
 
 
