@@ -264,8 +264,7 @@ void concatenacao(pg *pai, int pos){
 
     pai->nchaves--;
 
-    free(pai->filhos[pos+1]);
-    pai->filhos[pos+1] = NULL;
+//    pai->filhos[pos+1] = NULL;
 }
 
 int antecessor(pg *pagina,int val){
@@ -290,7 +289,7 @@ void remocao(pg *pai,pg *pagina,int val){
     if(pagina == NULL)
         return;
         
-    int i, x;
+    int i, x = 0;
     
     for(i = 0; i < pagina->nchaves && pagina->chaves[i] < val; i++);
 
@@ -300,15 +299,16 @@ void remocao(pg *pai,pg *pagina,int val){
 			return;
 	}
 	
-	if(pagina->chaves[i] == val && !pagina->filhos[0])
-		removerFolha(pagina,i);
+	if(pagina->chaves[i] == val && !pagina->filhos[0]){
+		removerFolha(pagina,i);	
+	}
 	if(i < pagina->nchaves && pagina->chaves[i] == val){
 		pagina->chaves[i] = antecessor(pagina->filhos[i],val);
 		remocao(pagina,pagina->filhos[i], pagina->chaves[i]);
 	}
-	if(pagina->nchaves < ceil(ordem / 2.0) - 1)
+	if(pagina->nchaves < ceil(ordem / 2.0) - 1 && pai)
 		x = redistribuir(pai,pagina);
-	if(!x)
+	if(!x && pai != NULL)
 		concatenacao(pai,i);
     return;
 }
@@ -316,7 +316,7 @@ void remocao(pg *pai,pg *pagina,int val){
 int main(){
 	int i;
     pg *raiz = criarPag();
-    for(i=0;i<5;i++){
+    for(i=0;i<30;i++){
     	pg *temp = inserir(raiz,i);
     	raiz = temp != raiz?novaRaiz(raiz->chaves[(ordem-1)/2],raiz,temp): temp;
 	}
