@@ -13,6 +13,8 @@ typedef struct Pagina {
     int raiz;
 } PG;
 
+/* ===================== CRIACAO ===================== */
+
 PG *criarPagina(int folha, PG *pai, int raiz)
 {
     int i;
@@ -27,6 +29,9 @@ PG *criarPagina(int folha, PG *pai, int raiz)
     return novo;
 }
 
+/* ===================== BUSCA ===================== */
+
+/* Retorna o indice da primeira chave >= valor (usado em insercao e navegacao) */
 int buscarPos(PG *pagina, int valor)
 {
     int i = 0;
@@ -35,7 +40,7 @@ int buscarPos(PG *pagina, int valor)
     return i;
 }
 
-
+/* Desce ate a folha onde valor deveria estar */
 PG *encontrarFolha(PG *raiz, int valor)
 {
     PG *pagina = raiz;
@@ -47,6 +52,8 @@ PG *encontrarFolha(PG *raiz, int valor)
     return pagina;
 }
 
+/* ===================== INSERCAO ===================== */
+
 void inserirOrdenado(PG *pagina, int valor)
 {
     int i;
@@ -56,6 +63,7 @@ void inserirOrdenado(PG *pagina, int valor)
     pagina->chaves[pos] = valor;
 }
 
+/* Declaracao antecipada (splitInterno chama inserirPai e vice-versa) */
 void inserirPai(PG **raiz, PG *pai, int chave, PG *novo);
 
 void splitInterno(PG **raiz, PG *indice)
@@ -126,6 +134,7 @@ void splitFolha(PG **raiz, PG *folha)
     }
     folha->numChaves = meio;
 
+    /* Mantém a lista encadeada de folhas corretamente */
     novo->prox  = folha->prox;
     folha->prox = novo;
 
@@ -162,6 +171,9 @@ void inserir(PG **raiz, int valor)
         splitFolha(raiz, folha);
 }
 
+/* ===================== REMOCAO ===================== */
+
+/* Retorna o indice de 'no' dentro do vetor filhos[] do pai */
 int encontrarIndicePai(PG *pai, PG *no)
 {
     int i = 0;
@@ -169,6 +181,10 @@ int encontrarIndicePai(PG *pai, PG *no)
     return i;
 }
 
+/*
+Quando a primeira chave de uma folha muda apos remocao,
+atualiza a chave-guia correspondente nos nos internos acima.
+ */
 void atualizarChavePai(PG *no, int chaveAntiga, int chaveNova)
 {
     PG *pai = no->pai;
@@ -184,6 +200,7 @@ void atualizarChavePai(PG *no, int chaveAntiga, int chaveNova)
     }
 }
 
+/* Remove a chave (e filho, para nos internos) da posicao idx */
 void removerDaPagina(PG *pagina, int idx)
 {
     int i;
@@ -191,6 +208,7 @@ void removerDaPagina(PG *pagina, int idx)
         pagina->chaves[i] = pagina->chaves[i + 1];
 
     if (pagina->folha == 0) {
+        /* Remove o ponteiro de filho a direita da chave removida */
         for (i = idx + 1; i < pagina->numChaves; i++)
             pagina->filhos[i] = pagina->filhos[i + 1];
         pagina->filhos[pagina->numChaves] = NULL;
@@ -198,14 +216,17 @@ void removerDaPagina(PG *pagina, int idx)
     pagina->numChaves--;
 }
 
+/* Declaracao antecipada (corrigeUnderflow e recursiva) */
 void corrigeUnderflow(PG **raiz, PG *pagina);
 
 void corrigeUnderflow(PG **raiz, PG *pagina)
 {
     int i;
 
+    /* Caso especial: pagina e a raiz */
     if (pagina->pai == NULL) {
         if (pagina->numChaves == 0 && pagina->folha == 0) {
+            /* Raiz interna ficou vazia; filho unico assume o papel de raiz */
             PG *novaRaiz = pagina->filhos[0];
             novaRaiz->pai  = NULL;
             novaRaiz->raiz = 1;
@@ -216,21 +237,23 @@ void corrigeUnderflow(PG **raiz, PG *pagina)
     }
 
     int minimo = (pagina->folha) ? ORDEM / 2 : (ORDEM + 1) / 2 - 1;
-    if (pagina->numChaves >= minimo) return;
+    if (pagina->numChaves >= minimo) return; /* sem underflow */
 
     PG *pai      = pagina->pai;
     int idx      = encontrarIndicePai(pai, pagina);
     PG *irmaoEsq = (idx > 0)          ? pai->filhos[idx - 1] : NULL;
     PG *irmaoDir = (idx < pai->numChaves) ? pai->filhos[idx + 1] : NULL;
 
+    /* --- Redistribuicao com irmao esquerdo --- */
     if (irmaoEsq && irmaoEsq->numChaves > ORDEM / 2) {
         if (pagina->folha) {
+            /* Abre espaco no inicio da folha */
             for (i = pagina->numChaves; i > 0; i--)
                 pagina->chaves[i] = pagina->chaves[i - 1];
             pagina->chaves[0] = irmaoEsq->chaves[irmaoEsq->numChaves - 1];
             pagina->numChaves++;
             irmaoEsq->numChaves--;
-            pai->chaves[idx - 1] = pagina->chaves[0];
+            pai->chaves[idx - 1] = pagina->chaves[0]; /* atualiza chave-guia */
         } else{
             for (i = pagina->numChaves; i > 0; i--)
                 pagina->chaves[i] = pagina->chaves[i - 1];
@@ -247,6 +270,7 @@ void corrigeUnderflow(PG **raiz, PG *pagina)
         return;
     }
 
+    /* --- Redistribuicao com irmao direito --- */
     if (irmaoDir && irmaoDir->numChaves > ORDEM / 2) {
         if (pagina->folha) {
             pagina->chaves[pagina->numChaves] = irmaoDir->chaves[0];
@@ -254,7 +278,7 @@ void corrigeUnderflow(PG **raiz, PG *pagina)
             for (i = 0; i < irmaoDir->numChaves - 1; i++)
                 irmaoDir->chaves[i] = irmaoDir->chaves[i + 1];
             irmaoDir->numChaves--;
-            pai->chaves[idx] = irmaoDir->chaves[0];
+            pai->chaves[idx] = irmaoDir->chaves[0]; /* atualiza chave-guia */
         } else {
             pagina->chaves[pagina->numChaves]      = pai->chaves[idx];
             pagina->filhos[pagina->numChaves + 1]  = irmaoDir->filhos[0];
@@ -271,7 +295,9 @@ void corrigeUnderflow(PG **raiz, PG *pagina)
         return;
     }
 
+    /* --- Fusao (nenhum irmao tem chaves sobrando) --- */
     if (irmaoEsq){
+        /* Funde 'pagina' dentro de 'irmaoEsq' */
         if (pagina->folha) {
             irmaoEsq->prox = pagina->prox;
 
@@ -292,6 +318,7 @@ void corrigeUnderflow(PG **raiz, PG *pagina)
         removerDaPagina(pai, idx - 1);
         free(pagina);
     } else{
+        /* Funde 'irmaoDir' dentro de 'pagina' */
         if (pagina->folha) {
             pagina->prox = irmaoDir->prox;
 
@@ -313,6 +340,7 @@ void corrigeUnderflow(PG **raiz, PG *pagina)
         free(irmaoDir);
     }
 
+    /* A fusao removeu uma chave do pai: verifica underflow em cascata */
     corrigeUnderflow(raiz, pai);
 }
 
@@ -325,6 +353,7 @@ void remover(PG **raiz, int valor)
 
     PG *folha = encontrarFolha(*raiz, valor);
 
+    /* Procura o valor na folha */
     int idx = -1, i;
     for (i = 0; i < folha->numChaves; i++) {
         if (folha->chaves[i] == valor) { idx = i; break; }
@@ -338,14 +367,17 @@ void remover(PG **raiz, int valor)
 
     removerDaPagina(folha, idx);
 
+    /* Se a chave removida era a primeira da folha, atualiza chave-guia no pai */
     if (folha->numChaves > 0 && idx == 0)
         atualizarChavePai(folha, chaveAntiga, folha->chaves[0]);
 
+    /* Folha e tambem a raiz: sem minimo a respeitar */
     if (folha->pai == NULL) return;
 
     corrigeUnderflow(raiz, folha);
 }
 
+/* ===================== IMPRESSAO ===================== */
 
 void printar(PG *raiz)
 {
@@ -366,6 +398,7 @@ void printar(PG *raiz)
     }
 }
 
+/* Imprime a lista encadeada de folhas (util para verificar o prox) */
 void printarFolhas(PG *raiz)
 {
     if (raiz == NULL) return;
@@ -386,6 +419,72 @@ void printarFolhas(PG *raiz)
     printf("NULL\n");
 }
 
+void escreverDot(PG *pagina, FILE *arq)
+{
+    int i;
+    if (pagina == NULL) return;
+
+    if (pagina->folha) {
+        // folha: shape=box para evitar conflito de ports com as arestas dashed do prox
+        fprintf(arq, "node%p [shape=box, style=filled, fillcolor=lightblue, label=\"", (void*)pagina);
+        for (i = 0; i < pagina->numChaves; i++) {
+            fprintf(arq, "%d", pagina->chaves[i]);
+            if (i < pagina->numChaves - 1) fprintf(arq, " | ");
+        }
+        fprintf(arq, "\"];\n");
+
+        // aresta pontilhada representando o ponteiro prox (lista ligada entre folhas)
+        if (pagina->prox != NULL)
+            fprintf(arq, "node%p -> node%p [style=dashed, constraint=false, color=gray, arrowsize=0.5];\n",
+                    (void*)pagina, (void*)pagina->prox);
+    } else {
+        // no interno: shape=record com ports <f0>..<fN> para conectar cada filho
+        fprintf(arq, "node%p [label=\"", (void*)pagina);
+        for (i = 0; i < pagina->numChaves; i++)
+            fprintf(arq, "<f%d> | %d | ", i, pagina->chaves[i]);
+        fprintf(arq, "<f%d>\"];\n", pagina->numChaves);
+
+        for (i = 0; i <= pagina->numChaves; i++) {
+            if (pagina->filhos[i] != NULL) {
+                fprintf(arq, "node%p:f%d -> node%p [arrowsize=0.5];\n",
+                        (void*)pagina, i, (void*)pagina->filhos[i]);
+                escreverDot(pagina->filhos[i], arq);
+            }
+        }
+    }
+}
+
+void gerarGraphviz(PG *raiz)
+{
+    if (raiz == NULL) {
+        printf("Arvore vazia.\n");
+        return;
+    }
+
+    FILE *arq = fopen("arvore.dot", "w");
+    if (arq == NULL) {
+        printf("Erro ao criar arquivo.\n");
+        return;
+    }
+
+    fprintf(arq, "digraph G {\n");
+    fprintf(arq, "    node [shape=record];\n"); // default para nos internos
+    fprintf(arq, "    rankdir=TB;\n\n");
+
+    escreverDot(raiz, arq);
+
+    fprintf(arq, "}\n");
+    fclose(arq);
+
+    int ret = system("dot -Tpng arvore.dot -o arvore.png");
+    if (ret == 0)
+        printf("Imagem gerada: arvore.png\n");
+    else
+        printf("Erro ao executar o Graphviz.\n");
+}
+
+/* ===================== MAIN ===================== */
+
 int main(int argc, char *argv[])
 {
     PG *raiz = NULL;
@@ -395,7 +494,7 @@ int main(int argc, char *argv[])
         op = 1;
         system("cls");
         printf("===== CONTROLE DE ARVORE B+ =====\n");
-        printf(" [1] INSERIR  [2] REMOVER  [3] PRINTAR  [4] FOLHAS\n");
+        printf(" [1] INSERIR  [2] REMOVER  [3] PRINTAR  [4] FOLHAS  [5] GRAPHVIZ\n");
         printf("R: ");
         scanf("%d", &escolha);
 
@@ -427,6 +526,12 @@ int main(int argc, char *argv[])
             case 4: {
                 system("cls");
                 printarFolhas(raiz);
+                getchar(); getchar();
+                break;
+            }
+            case 5: {
+                system("cls");
+                gerarGraphviz(raiz);
                 getchar(); getchar();
                 break;
             }
