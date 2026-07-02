@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#define ordem 10
+#define ordem 5
 
 /* run this program using the console pauser or add your own getch, system("pause") or input loop */
 
@@ -10,6 +10,58 @@ typedef struct pagina{
 	int chaves[ordem-1];
 	struct pagina *filhos[ordem];
 }pg;
+
+void escreverDot(pg *pagina, FILE *arq){
+    if(pagina == NULL)
+        return;
+	int i;
+    fprintf(arq, "node%p [label=\"", (void*)pagina);
+
+    for(i = 0; i < pagina->nchaves; i++)
+        fprintf(arq, "<f%d> | %d | ", i, pagina->chaves[i]);
+
+    fprintf(arq, "<f%d>\"];\n", pagina->nchaves);
+
+    for(i = 0; i <= pagina->nchaves; i++){
+        if(pagina->filhos[i]){
+            fprintf(arq,
+                "node%p:f%d -> node%p;\n",
+                (void*)pagina,
+                i,
+                (void*)pagina->filhos[i]);
+
+            escreverDot(pagina->filhos[i], arq);
+        }
+    }
+}
+
+void gerarGraphviz(pg *raiz){
+    FILE *arq = fopen("arvore.dot", "w");
+
+    if(arq == NULL){
+        printf("Erro ao criar arquivo.\n");
+        return;
+    }
+
+    fprintf(arq,
+        "digraph G {\n"
+        "    node [shape=record];\n"
+        "    rankdir=TB;\n");
+
+    escreverDot(raiz, arq);
+
+    fprintf(arq, "}\n");
+
+    fclose(arq);
+
+    // Gera o PNG
+    int ret = system("dot -Tpng arvore.dot -o arvore.png");
+
+    if(ret == 0)
+        printf("Imagem gerada: arvore.png\n");
+    else
+        printf("Erro ao executar o Graphviz.\n");
+}
 
 int buscaVal(pg *pagina, int val){
     if(pagina == NULL)
@@ -96,7 +148,7 @@ pg *inserir(pg *pagina,int val){
 	int p,i,x=ordem-1;
 	for(i = 0; i < pagina->nchaves && pagina->chaves[i] < val; i++);
 	if(pagina->chaves[i] == val && i < pagina->nchaves){
-		printf("Valor já inserido");
+		printf("Valor ja inserido");
 		return pagina;
 	}
 	pg *temp = inserir(pagina->filhos[i],val);
@@ -139,30 +191,81 @@ void listarArvore(pg *pagina, int nivel){
         listarArvore(pagina->filhos[i], nivel + 1);
 }
 
-pg *redistribuir(pg *pai, int *chave, int pos, int *indice){
-	pg *filho = NULL;
-	int i;
-	if(pos-1 >=0 && pai->filhos[pos-1]->nchaves > ceil(ordem/2)){
-		pai->filhos[pos-1]->nchaves --;
-		*chave = pai->filhos[pos-1]->chaves[pai->filhos[pos-1]->nchaves];
-		filho = pai->filhos[pos-1]->filhos[pai->filhos[pos-1]->nchaves];
-		pai->filhos[pos-1]->filhos[pai->filhos[pos-1]->nchaves] = NULL;
-		*indice = pos-1;
-		return filho;
-	}
-	if(pos+1 <= pai->nchaves && pai->filhos[pos+1]->nchaves > ceil(ordem/2)){
-		pai->filhos[pos+1]->nchaves --;
-		*chave = pai->filhos[pos+1]->chaves[0];
-		filho = pai->filhos[pos+1]->filhos[0];
-		for(i=0;i<pai->filhos[pos+1]->nchaves;i++){
-			pai->filhos[pos+1]->chaves[i] = pai->filhos[pos+1]->chaves[i+1];
-			pai->filhos[pos+1]->filhos[i] = pai->filhos[pos+1]->filhos[i+1];
-		}
-		pai->filhos[pos+1]->filhos[pai->filhos[pos+1]->nchaves] = pai->filhos[pai->filhos[pos+1]->nchaves+1];
-		pai->filhos[pos+1]->filhos[pai->filhos[pos+1]->nchaves+1] = NULL;
-		*indice = pos;
-	}
-	return filho;
+int redistribuir(pg *pai, pg *atual){
+    int i, pos, desc;
+
+    /* Descobre qual filho é "atual" */
+    for (pos = 0; pai->filhos[pos] != atual; pos++);
+
+    /* ========= Redistribuição pelo irmão da esquerda ========= */
+    if (pos > 0 &&
+        pai->filhos[pos-1]->nchaves > ceil(ordem / 2.0) - 1){
+
+        desc = pos - 1;
+
+        /* Abre espaço para a nova chave */
+        for (i = pai->filhos[pos]->nchaves - 1; i >= 0; i--)
+            pai->filhos[pos]->chaves[i + 1] = pai->filhos[pos]->chaves[i];
+
+        /* Abre espaço para o novo filho */
+        for (i = pai->filhos[pos]->nchaves; i >= 0; i--)
+            pai->filhos[pos]->filhos[i + 1] = pai->filhos[pos]->filhos[i];
+
+        /* Chave do pai desce */
+        pai->filhos[pos]->chaves[0] = pai->chaves[desc];
+
+        /* Último filho do irmão passa para o início */
+        pai->filhos[pos]->filhos[0] =
+            pai->filhos[pos-1]->filhos[pai->filhos[pos-1]->nchaves];
+
+        /* Última chave do irmão sobe */
+        pai->chaves[desc] =
+            pai->filhos[pos-1]->chaves[pai->filhos[pos-1]->nchaves - 1];
+
+        pai->filhos[pos-1]->filhos[pai->filhos[pos-1]->nchaves] = NULL;
+
+        pai->filhos[pos-1]->nchaves--;
+        pai->filhos[pos]->nchaves++;
+
+        return 1;
+    }
+
+    /* ========= Redistribuição pelo irmão da direita ========= */
+    if (pos < pai->nchaves &&
+        pai->filhos[pos+1]->nchaves > ceil(ordem / 2.0) - 1){
+
+        desc = pos;
+
+        /* Chave do pai vai para o final */
+        pai->filhos[pos]->chaves[pai->filhos[pos]->nchaves] =
+            pai->chaves[desc];
+
+        /* Primeiro filho do irmão passa para o final */
+        pai->filhos[pos]->filhos[pai->filhos[pos]->nchaves + 1] =
+            pai->filhos[pos+1]->filhos[0];
+
+        /* Primeira chave do irmão sobe */
+        pai->chaves[desc] = pai->filhos[pos+1]->chaves[0];
+
+        /* Desloca as chaves do irmão */
+        for (i = 0; i < pai->filhos[pos+1]->nchaves - 1; i++)
+            pai->filhos[pos+1]->chaves[i] =
+                pai->filhos[pos+1]->chaves[i + 1];
+
+        /* Desloca os filhos do irmão */
+        for (i = 0; i < pai->filhos[pos+1]->nchaves; i++)
+            pai->filhos[pos+1]->filhos[i] =
+                pai->filhos[pos+1]->filhos[i + 1];
+
+        pai->filhos[pos+1]->filhos[pai->filhos[pos+1]->nchaves] = NULL;
+
+        pai->filhos[pos]->nchaves++;
+        pai->filhos[pos+1]->nchaves--;
+
+        return 1;
+    }
+
+    return 0;
 }
 
 void concatenacao(pg *pai, int pos){
@@ -196,30 +299,60 @@ void concatenacao(pg *pai, int pos){
     pai->filhos[pos+1] = NULL;
 }
 
-pg *remocao(pg **pai,int val;){
-	pg *pagina = *pai;
-    if(pagina == NULL)
-        return NULL;
-    
-    int i;
-    for(i = 0; i < pagina->nchaves && pagina->chaves[i] < val; i++);
-
-    if(i < pagina->nchaves && pagina->chaves[i] == val)
-        return pagina->chaves[i];
-
-    return buscaVal(pagina->filhos[i], val);
+int antecessor(pg *pagina,int val){
+	int subir;
+    while(pagina->filhos[pagina->nchaves] != NULL)
+        pagina = pagina->filhos[pagina->nchaves];
+        
+	subir = pagina->chaves[pagina->nchaves - 1];
+	pagina->chaves[pagina->nchaves - 1] = val;
+	return subir;
 }
 
+void removerFolha(pg *pagina, int pos){
+    int i;
+    if(pagina == NULL)
+        return;
+    for(i = pos; i < pagina->nchaves - 1; i++)
+        pagina->chaves[i] = pagina->chaves[i + 1];
+    pagina->nchaves--;
+}
+
+void remocao(pg *pai,pg *pagina,int val){
+    if(pagina == NULL)
+        return;
+        
+    int i, x;
+    
+    for(i = 0; i < pagina->nchaves && pagina->chaves[i] < val; i++);
+
+    if(pagina->nchaves < ceil(ordem / 2.0) - 1 && pagina->chaves[i] != val){
+		remocao(pagina,pagina->filhos[i], val);
+		if(pagina->nchaves > ceil(ordem/2.0))
+			return;
+	}
+	
+	if(pagina->chaves[i] == val && !pagina->filhos[0])
+		return removerFolha(pagina,i);
+	if(i < pagina->nchaves && pagina->chaves[i] == val){
+		pagina->chaves[i] = antecessor(pagina,val);
+		remocao(pagina,pagina->filhos[i], val);
+	}
+	x = redistribuir(pai,pagina);
+	if(!x)
+		concatenacao(pagina,i);
+    return;
+}
 
 int main(){
 	int i;
     pg *raiz = criarPag();
-    for(i=0;i<100;i++){
+    for(i=0;i<30;i++){
     	pg *temp = inserir(raiz,i);
     	raiz = temp != raiz?novaRaiz(raiz->chaves[(ordem-1)/2],raiz,temp): temp;
 	}
 	
-    listarArvore(raiz,0);
+    gerarGraphviz(raiz);
 
     return 0;
 }
