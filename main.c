@@ -337,7 +337,8 @@ void remocao(pg *pai,pg *pagina,int val){
 		pagina->chaves[i] = antecessor(pagina->filhos[i],val);
 		remocao(pagina,pagina->filhos[i], pagina->chaves[i]);
 	}
-//	x = redistribuir(pai,pagina);
+	if(pagina->nchaves < ceil(ordem / 2.0) - 1)
+		x = redistribuir(pai,pagina);
 //	if(!x)
 //		concatenacao(pai,i);
     return;
@@ -351,7 +352,7 @@ int main(){
     	raiz = temp != raiz?novaRaiz(raiz->chaves[(ordem-1)/2],raiz,temp): temp;
 	}
 	
-	remocao(NULL,raiz,17);
+	remocao(NULL,raiz,25);
 	
     gerarGraphviz(raiz);
 
