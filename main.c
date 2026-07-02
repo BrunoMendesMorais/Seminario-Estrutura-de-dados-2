@@ -174,53 +174,28 @@ pg *novaRaiz(int chave, pg *esq,pg *dir){
 	return nova;
 }
 
-void listarArvore(pg *pagina, int nivel){
-    if(pagina == NULL)
-        return;
-
-    int i;
-
-    printf("Nivel %d: ", nivel);
-
-    printf("[ ");
-    for(i = 0; i < pagina->nchaves; i++)
-        printf("%d ", pagina->chaves[i]);
-    printf("]\n");
-
-    for(i = 0; i <= pagina->nchaves; i++)
-        listarArvore(pagina->filhos[i], nivel + 1);
-}
-
 int redistribuir(pg *pai, pg *atual){
     int i, pos, desc;
 
-    /* Descobre qual filho é "atual" */
     for (pos = 0; pai->filhos[pos] != atual; pos++);
 
-    /* ========= Redistribuição pelo irmão da esquerda ========= */
     if (pos > 0 &&
         pai->filhos[pos-1]->nchaves > ceil(ordem / 2.0) - 1){
 
         desc = pos - 1;
 
-        /* Abre espaço para a nova chave */
         for (i = pai->filhos[pos]->nchaves - 1; i >= 0; i--)
             pai->filhos[pos]->chaves[i + 1] = pai->filhos[pos]->chaves[i];
 
-        /* Abre espaço para o novo filho */
         for (i = pai->filhos[pos]->nchaves; i >= 0; i--)
             pai->filhos[pos]->filhos[i + 1] = pai->filhos[pos]->filhos[i];
 
-        /* Chave do pai desce */
         pai->filhos[pos]->chaves[0] = pai->chaves[desc];
 
-        /* Último filho do irmão passa para o início */
         pai->filhos[pos]->filhos[0] =
             pai->filhos[pos-1]->filhos[pai->filhos[pos-1]->nchaves];
 
-        /* Última chave do irmão sobe */
-        pai->chaves[desc] =
-            pai->filhos[pos-1]->chaves[pai->filhos[pos-1]->nchaves - 1];
+        pai->chaves[desc] = pai->filhos[pos-1]->chaves[pai->filhos[pos-1]->nchaves - 1];
 
         pai->filhos[pos-1]->filhos[pai->filhos[pos-1]->nchaves] = NULL;
 
@@ -230,29 +205,23 @@ int redistribuir(pg *pai, pg *atual){
         return 1;
     }
 
-    /* ========= Redistribuição pelo irmão da direita ========= */
     if (pos < pai->nchaves &&
         pai->filhos[pos+1]->nchaves > ceil(ordem / 2.0) - 1){
 
         desc = pos;
-
-        /* Chave do pai vai para o final */
+        
         pai->filhos[pos]->chaves[pai->filhos[pos]->nchaves] =
             pai->chaves[desc];
 
-        /* Primeiro filho do irmão passa para o final */
         pai->filhos[pos]->filhos[pai->filhos[pos]->nchaves + 1] =
             pai->filhos[pos+1]->filhos[0];
 
-        /* Primeira chave do irmão sobe */
         pai->chaves[desc] = pai->filhos[pos+1]->chaves[0];
 
-        /* Desloca as chaves do irmão */
         for (i = 0; i < pai->filhos[pos+1]->nchaves - 1; i++)
             pai->filhos[pos+1]->chaves[i] =
                 pai->filhos[pos+1]->chaves[i + 1];
 
-        /* Desloca os filhos do irmão */
         for (i = 0; i < pai->filhos[pos+1]->nchaves; i++)
             pai->filhos[pos+1]->filhos[i] =
                 pai->filhos[pos+1]->filhos[i + 1];
@@ -332,27 +301,27 @@ void remocao(pg *pai,pg *pagina,int val){
 	}
 	
 	if(pagina->chaves[i] == val && !pagina->filhos[0])
-		return removerFolha(pagina,i);
+		removerFolha(pagina,i);
 	if(i < pagina->nchaves && pagina->chaves[i] == val){
 		pagina->chaves[i] = antecessor(pagina->filhos[i],val);
 		remocao(pagina,pagina->filhos[i], pagina->chaves[i]);
 	}
 	if(pagina->nchaves < ceil(ordem / 2.0) - 1)
 		x = redistribuir(pai,pagina);
-//	if(!x)
-//		concatenacao(pai,i);
+	if(!x)
+		concatenacao(pai,i);
     return;
 }
 
 int main(){
 	int i;
     pg *raiz = criarPag();
-    for(i=0;i<30;i++){
+    for(i=0;i<5;i++){
     	pg *temp = inserir(raiz,i);
     	raiz = temp != raiz?novaRaiz(raiz->chaves[(ordem-1)/2],raiz,temp): temp;
 	}
 	
-	remocao(NULL,raiz,25);
+	remocao(NULL,raiz,0);
 	
     gerarGraphviz(raiz);
 
