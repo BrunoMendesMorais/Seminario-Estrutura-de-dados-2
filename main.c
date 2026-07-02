@@ -305,7 +305,6 @@ int antecessor(pg *pagina,int val){
         pagina = pagina->filhos[pagina->nchaves];
         
 	subir = pagina->chaves[pagina->nchaves - 1];
-	pagina->chaves[pagina->nchaves - 1] = val;
 	return subir;
 }
 
@@ -326,7 +325,7 @@ void remocao(pg *pai,pg *pagina,int val){
     
     for(i = 0; i < pagina->nchaves && pagina->chaves[i] < val; i++);
 
-    if(pagina->nchaves < ceil(ordem / 2.0) - 1 && pagina->chaves[i] != val){
+    if(pagina->chaves[i] != val){
 		remocao(pagina,pagina->filhos[i], val);
 		if(pagina->nchaves > ceil(ordem/2.0))
 			return;
@@ -335,12 +334,12 @@ void remocao(pg *pai,pg *pagina,int val){
 	if(pagina->chaves[i] == val && !pagina->filhos[0])
 		return removerFolha(pagina,i);
 	if(i < pagina->nchaves && pagina->chaves[i] == val){
-		pagina->chaves[i] = antecessor(pagina,val);
-		remocao(pagina,pagina->filhos[i], val);
+		pagina->chaves[i] = antecessor(pagina->filhos[i],val);
+		remocao(pagina,pagina->filhos[i], pagina->chaves[i]);
 	}
-	x = redistribuir(pai,pagina);
-	if(!x)
-		concatenacao(pagina,i);
+//	x = redistribuir(pai,pagina);
+//	if(!x)
+//		concatenacao(pai,i);
     return;
 }
 
@@ -351,6 +350,8 @@ int main(){
     	pg *temp = inserir(raiz,i);
     	raiz = temp != raiz?novaRaiz(raiz->chaves[(ordem-1)/2],raiz,temp): temp;
 	}
+	
+	remocao(NULL,raiz,17);
 	
     gerarGraphviz(raiz);
 
